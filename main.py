@@ -63,8 +63,6 @@ class ChillSessionsHandler:
         self.useridToChillSessions = dict()
 
     def add_chill_session(self, userid, name):
-        # if userid not in self.useridToChillSessions.keys():
-        #     self.useridToChillSessions[userid] = []
         chill_session = ChillSession(name)
         self.useridToChillSessions[userid].append(chill_session)
 
@@ -94,11 +92,21 @@ class Communication:
     def __init__(self):
         self.chillSessionsHandler = ChillSessionsHandler()
 
-    def input_name_of_new_session(self, message):
+    def new_session(self, message):
         self.chillSessionsHandler.add_user(message.from_user.id)
         name_of_session = message.text
         bot.send_message(message.from_user.id, 'thanks')
         self.chillSessionsHandler.add_chill_session(message.from_user.id, name_of_session)
+
+    def delete_session(self, message):
+        name_of_session = message.text
+        if message.from_user.id not in self.chillSessionsHandler.useridToChillSessions.keys():
+            bot.send_message(message.from_user.id, 'this session does not exist')
+        elif not self.chillSessionsHandler.chill_session_exists(message.from_user.id, name_of_session):
+            bot.send_message(message.from_user.id, 'this session does not exist')
+        else:
+            self.chillSessionsHandler.delete_chill_session(message.from_user.id, name_of_session)
+            bot.send_message(message.from_user.id, 'thanks')
 
 
 communication = Communication()
@@ -109,12 +117,17 @@ def get_text_messages(message):
     if message.text == '/help':
         bot.send_message(message.from_user.id, 'list of commands:\n'
                                                '/new_session\n'
-                                               '/list_of_sessions\n')
+                                               '/list_of_sessions\n'
+                                               '/delete_session\n')
     elif message.text == '/new_session':
         bot.send_message(message.from_user.id, 'name:')
-        bot.register_next_step_handler(message, communication.input_name_of_new_session)
+        bot.register_next_step_handler(message, communication.new_session)
     elif message.text == '/list_of_sessions':
-        if message.from_user.id in communication.chillSessionsHandler.useridToChillSessions.keys():
+        if message.from_user.id in communication.chillSessionsHandler.useridToChillSessions.keys() and \
+                len(communication.chillSessionsHandler.useridToChillSessions[message.from_user.id]) > 0:
+            bot.send_message(message.from_user.id, 'You have ' +
+                             str(len(communication.chillSessionsHandler.
+                                     useridToChillSessions[message.from_user.id])) + ' sessions\n')
             name = ''
             for i in range(len(communication.chillSessionsHandler.useridToChillSessions[message.from_user.id])):
                 name += communication.chillSessionsHandler.useridToChillSessions[message.from_user.id][i].name
@@ -122,6 +135,9 @@ def get_text_messages(message):
             bot.send_message(message.from_user.id, name)
         else:
             bot.send_message(message.from_user.id, 'You have no chill session')
+    elif message.text == '/delete_session':
+        bot.send_message(message.from_user.id, 'name:')
+        bot.register_next_step_handler(message, communication.delete_session)
     else:
         bot.send_message(message.from_user.id, 'try \'/help\'')
 
