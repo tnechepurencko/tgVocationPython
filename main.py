@@ -19,7 +19,7 @@ class Person:
 class ChillSession:
     def __init__(self, name):
         self.name = name
-        self.sharedAccount = 0
+        self.sharedAccount: int = 0
         self.memberList = []
 
     def change_name(self, name):
@@ -96,76 +96,102 @@ class Communication:
         self.opened_session = None
 
     def new_session(self, message):
-        if self.in_session:
-            bot.send_message(message.from_user.id, 'You cannot use this command inside the session')
-        else:
-            self.chillSessionsHandler.add_user(message.from_user.id)
-            name_of_session = message.text
-            bot.send_message(message.from_user.id, 'thanks')
-            self.chillSessionsHandler.add_chill_session(message.from_user.id, name_of_session)
+        self.chillSessionsHandler.add_user(message.from_user.id)
+        name_of_session = message.text
+        bot.send_message(message.from_user.id, 'thanks')
+        self.chillSessionsHandler.add_chill_session(message.from_user.id, name_of_session)
 
     def delete_session(self, message):
-        if self.in_session:
-            bot.send_message(message.from_user.id, 'You cannot use this command inside the session')
+        name_of_session = message.text
+        if message.from_user.id not in self.chillSessionsHandler.useridToChillSessions.keys():
+            bot.send_message(message.from_user.id, 'this session does not exist')
+        elif not self.chillSessionsHandler.chill_session_exists(message.from_user.id, name_of_session):
+            bot.send_message(message.from_user.id, 'this session does not exist')
         else:
-            name_of_session = message.text
-            if message.from_user.id not in self.chillSessionsHandler.useridToChillSessions.keys():
-                bot.send_message(message.from_user.id, 'this session does not exist')
-            elif not self.chillSessionsHandler.chill_session_exists(message.from_user.id, name_of_session):
-                bot.send_message(message.from_user.id, 'this session does not exist')
-            else:
-                self.chillSessionsHandler.delete_chill_session(message.from_user.id, name_of_session)
-                bot.send_message(message.from_user.id, 'thanks')
+            self.chillSessionsHandler.delete_chill_session(message.from_user.id, name_of_session)
+            bot.send_message(message.from_user.id, 'thanks')
 
     def set_opened_session(self, session):
         self.opened_session = session
 
     def open_session(self, message):
-        if self.in_session:
-            bot.send_message(message.from_user.id, 'You cannot use this command inside the session')
+        name_of_session = message.text
+        if message.from_user.id not in self.chillSessionsHandler.useridToChillSessions.keys():
+            bot.send_message(message.from_user.id, 'this session does not exist')
+        elif not self.chillSessionsHandler.chill_session_exists(message.from_user.id, name_of_session):
+            bot.send_message(message.from_user.id, 'this session does not exist')
         else:
-            name_of_session = message.text
-            if message.from_user.id not in self.chillSessionsHandler.useridToChillSessions.keys():
-                bot.send_message(message.from_user.id, 'this session does not exist')
-            elif not self.chillSessionsHandler.chill_session_exists(message.from_user.id, name_of_session):
-                bot.send_message(message.from_user.id, 'this session does not exist')
-            else:
-                ind = self.chillSessionsHandler.chill_session_index(message.from_user.id, name_of_session)
-                self.set_opened_session(self.chillSessionsHandler.useridToChillSessions[message.from_user.id][ind])
-                self.in_session = True
-                bot.send_message(message.from_user.id, 'You are in the session \"' + self.opened_session.name + '\"!')
+            ind = self.chillSessionsHandler.chill_session_index(message.from_user.id, name_of_session)
+            self.set_opened_session(self.chillSessionsHandler.useridToChillSessions[message.from_user.id][ind])
+            self.in_session = True
+            bot.send_message(message.from_user.id, 'You are in the session \"' + self.opened_session.name + '\"!')
 
     def exit_session(self, message):
-        if not self.in_session:
-            bot.send_message(message.from_user.id, 'You are not inside a session')
+        self.set_opened_session(None)
+        self.in_session = False
+        bot.send_message(message.from_user.id, 'You have exited the session successfully!')
+
+    def add_expenses_3(self, message):
+        amount = message.text.split('.')
+        if len(amount) == 1:
+            amount = message.text.split(',')
+            if len(amount) == 1:
+                wrong_format = False
+                for i in range(len(amount[0])):
+                    if not str(amount[0][i]).isdigit():
+                        wrong_format = True
+                        break
+                if wrong_format:
+                    bot.send_message(message.from_user.id, 'wrong format! try again!')
+                else:
+                    ind = self.chillSessionsHandler.chill_session_index(message.from_user.id,
+                                                                        communication.opened_session.name)
+                    self.chillSessionsHandler.useridToChillSessions[message.from_user.id][ind]. \
+                        add_to_shared_account(int(amount[0]))
+                    bot.send_message(message.from_user.id, amount[0] + ' was added to the shared account!')
         else:
-            self.set_opened_session(None)
-            self.in_session = False
-            bot.send_message(message.from_user.id, 'You have exited the session successfully!')
+            bot.send_message(message.from_user.id, 'wrong format! try again!')
 
+    def add_expenses_2(self, message, name):
+        amount = message.text.split('.')
+        if len(amount) == 1:
+            amount = message.text.split(',')
+            if len(amount) == 1:
+                wrong_format = False
+                for i in range(len(amount[0])):
+                    if not str(amount[0][i]).isdigit():
+                        wrong_format = True
+                        break
+                if wrong_format:
+                    bot.send_message(message.from_user.id, 'wrong format! try again!')
+                else:
+                    ind = self.chillSessionsHandler.chill_session_index(message.from_user.id,
+                                                                        communication.opened_session.name)
+                    if not self.chillSessionsHandler.useridToChillSessions[message.from_user.id][ind].member_exists:
+                        self.chillSessionsHandler.useridToChillSessions[message.from_user.id][ind].add_member(name)
+                    self.chillSessionsHandler.useridToChillSessions[message.from_user.id][ind].\
+                        add_to_personal_account(name, int(amount[0]))
+                    bot.send_message(message.from_user.id, amount[0] + ' was added to ' + name + '\'s account!')
+        else:
+            bot.send_message(message.from_user.id, 'wrong format! try again!')
 
-    # def add_expenses_2(self, message, name):
-    #     amount = message.text.split('.')
-    #     if len(amount == 1):
-    #         amount = message.text.split(',')
-    #         if len(amount == 1):
-    #             wrong_format = False
-    #             for i in range(len(amount[0])):
-    #                 if str(amount[0][i]).isdigit():
-    #                     wrong_format = True
-    #                     break
-    #             if wrong_format:
-    #                 bot.send_message(message.from_user.id, 'wrong format! try again!')
-    #             else:
-    #                 if not self.chillSessionsHandler.useridToChillSessions[message.from_user.id][]
-    #
-    #                     person = Person(name)
-    #
-    #
-    # @staticmethod
-    # def add_expenses_1(message):
-    #     name = message.text
-    #     bot.register_next_step_handler(message, communication.add_expenses_2, name)
+    @staticmethod
+    def add_expenses_1(message):
+        name = message.text
+        bot.send_message(message.from_user.id, 'amount:')
+        bot.register_next_step_handler(message, communication.add_expenses_2, name)
+
+    @staticmethod
+    def add_expenses_0(message):
+        to_personal_account = message.text
+        if to_personal_account == 'y' or to_personal_account == 'yes':
+            bot.send_message(message.from_user.id, 'name:')
+            bot.register_next_step_handler(message, communication.add_expenses_1)
+        elif to_personal_account == 'n' or to_personal_account == 'no':
+            bot.send_message(message.from_user.id, 'amount:')
+            bot.register_next_step_handler(message, communication.add_expenses_3)
+        else:
+            bot.send_message(message.from_user.id, 'Wrong format! Try Again!')
 
 
 communication = Communication()
@@ -174,41 +200,63 @@ communication = Communication()
 @bot.message_handler(content_types=['text'])  # получает
 def get_text_messages(message):
     if message.text == '/help':
-        bot.send_message(message.from_user.id, 'list of commands:\n'
-                                               '/new_session\n'
-                                               '/list_of_sessions\n'
-                                               '/delete_session\n'
-                                               '/open_session\n'
-                                               '/exit_session\n'
-                                               # '/add_expenses\n'
-                         )
-    elif message.text == '/new_session':
-        bot.send_message(message.from_user.id, 'name:')
-        bot.register_next_step_handler(message, communication.new_session)
-    elif message.text == '/list_of_sessions':
-        if message.from_user.id in communication.chillSessionsHandler.useridToChillSessions.keys() and \
-                len(communication.chillSessionsHandler.useridToChillSessions[message.from_user.id]) > 0:
-            bot.send_message(message.from_user.id, 'You have ' +
-                             str(len(communication.chillSessionsHandler.
-                                     useridToChillSessions[message.from_user.id])) + ' sessions\n')
-            name = ''
-            for i in range(len(communication.chillSessionsHandler.useridToChillSessions[message.from_user.id])):
-                name += communication.chillSessionsHandler.useridToChillSessions[message.from_user.id][i].name
-                name += '\n'
-            bot.send_message(message.from_user.id, name)
+        if communication.in_session:
+            bot.send_message(message.from_user.id, 'You are in session! List of available commands:\n'
+                                                   '/exit_session\n'
+                                                   '/add_expenses\n'
+                             )
         else:
-            bot.send_message(message.from_user.id, 'You have no chill session')
+            bot.send_message(message.from_user.id, 'List of available commands:\n'
+                                                   '/new_session\n'
+                                                   '/list_of_sessions\n'
+                                                   '/delete_session\n'
+                                                   '/open_session\n'
+                             )
+    elif message.text == '/new_session':
+        if communication.in_session:
+            bot.send_message(message.from_user.id, 'You cannot use this command inside the session')
+        else:
+            bot.send_message(message.from_user.id, 'name:')
+            bot.register_next_step_handler(message, communication.new_session)
+    elif message.text == '/list_of_sessions':
+        if communication.in_session:
+            bot.send_message(message.from_user.id, 'You cannot use this command inside the session')
+        else:
+            if message.from_user.id in communication.chillSessionsHandler.useridToChillSessions.keys() and \
+                    len(communication.chillSessionsHandler.useridToChillSessions[message.from_user.id]) > 0:
+                bot.send_message(message.from_user.id, 'You have ' +
+                                 str(len(communication.chillSessionsHandler.
+                                         useridToChillSessions[message.from_user.id])) + ' sessions\n')
+                name = ''
+                for i in range(len(communication.chillSessionsHandler.useridToChillSessions[message.from_user.id])):
+                    name += communication.chillSessionsHandler.useridToChillSessions[message.from_user.id][i].name
+                    name += '\n'
+                bot.send_message(message.from_user.id, name)
+            else:
+                bot.send_message(message.from_user.id, 'You have no chill session')
     elif message.text == '/delete_session':
-        bot.send_message(message.from_user.id, 'name:')
-        bot.register_next_step_handler(message, communication.delete_session)
+        if communication.in_session:
+            bot.send_message(message.from_user.id, 'You cannot use this command inside the session')
+        else:
+            bot.send_message(message.from_user.id, 'name:')
+            bot.register_next_step_handler(message, communication.delete_session)
     elif message.text == '/open_session':
-        bot.send_message(message.from_user.id, 'name:')
-        bot.register_next_step_handler(message, communication.open_session)
+        if communication.in_session:
+            bot.send_message(message.from_user.id, 'You cannot use this command inside the session')
+        else:
+            bot.send_message(message.from_user.id, 'name:')
+            bot.register_next_step_handler(message, communication.open_session)
     elif message.text == '/exit_session':
-        communication.exit_session(message)
-    # elif message.text == '/add_expenses':
-    #     bot.send_message(message.from_user.id, 'name:')
-    #     bot.register_next_step_handler(message, communication.add_expenses_1)
+        if not communication.in_session:
+            bot.send_message(message.from_user.id, 'You are not inside a session')
+        else:
+            communication.exit_session(message)
+    elif message.text == '/add_expenses':
+        if not communication.in_session:
+            bot.send_message(message.from_user.id, 'You are not inside a session')
+        else:
+            bot.send_message(message.from_user.id, 'to personal account? (y/n)')
+            bot.register_next_step_handler(message, communication.add_expenses_0)
     else:
         bot.send_message(message.from_user.id, 'try \'/help\'')
 
