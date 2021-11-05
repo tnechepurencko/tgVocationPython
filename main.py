@@ -21,6 +21,15 @@ class ChillSession:
         self.name = name
         self.sharedAccount: int = 0
         self.memberList = []
+        self.currency = '₽'
+
+    def set_currency(self, currency):
+        if currency == 'ruble':
+            self.currency = '₽'
+        elif currency == 'dollar':
+            self.currency = '$'
+        elif currency == 'euro':
+            self.currency = '€'
 
     def change_name(self, name):
         self.name = name
@@ -98,7 +107,7 @@ class Communication:
     def new_session(self, message):
         self.chillSessionsHandler.add_user(message.from_user.id)
         name_of_session = message.text
-        bot.send_message(message.from_user.id, 'thanks')
+        bot.send_message(message.from_user.id, 'Thanks! Recommendation: set currency if needed')
         self.chillSessionsHandler.add_chill_session(message.from_user.id, name_of_session)
 
     def delete_session(self, message):
@@ -148,7 +157,8 @@ class Communication:
                                                                         communication.opened_session.name)
                     self.chillSessionsHandler.useridToChillSessions[message.from_user.id][ind]. \
                         add_to_shared_account(int(amount[0]))
-                    bot.send_message(message.from_user.id, amount[0] + ' was added to the shared account!')
+                    bot.send_message(message.from_user.id, amount[0] + communication.opened_session.currency +
+                                     ' was added to the shared account!')
         else:
             bot.send_message(message.from_user.id, 'wrong format! try again!')
 
@@ -167,11 +177,13 @@ class Communication:
                 else:
                     ind = self.chillSessionsHandler.chill_session_index(message.from_user.id,
                                                                         communication.opened_session.name)
-                    if not self.chillSessionsHandler.useridToChillSessions[message.from_user.id][ind].member_exists:
+                    if not self.chillSessionsHandler.useridToChillSessions[message.from_user.id][ind].\
+                            member_exists(name):
                         self.chillSessionsHandler.useridToChillSessions[message.from_user.id][ind].add_member(name)
                     self.chillSessionsHandler.useridToChillSessions[message.from_user.id][ind].\
                         add_to_personal_account(name, int(amount[0]))
-                    bot.send_message(message.from_user.id, amount[0] + ' was added to ' + name + '\'s account!')
+                    bot.send_message(message.from_user.id, amount[0] + communication.opened_session.currency +
+                                     ' was added to ' + name + '\'s account!')
         else:
             bot.send_message(message.from_user.id, 'wrong format! try again!')
 
@@ -193,17 +205,35 @@ class Communication:
         else:
             bot.send_message(message.from_user.id, 'Wrong format! Try Again!')
 
+    def set_currency(self, message):
+        if message.text == 'ruble' or message.text == 'rub' or message.text == '₽':
+            ind = self.chillSessionsHandler.chill_session_index(message.from_user.id, communication.opened_session.name)
+            self.chillSessionsHandler.useridToChillSessions[message.from_user.id][ind].set_currency('ruble')
+            bot.send_message(message.from_user.id, 'The currency is ₽ now!')
+        elif message.text == 'dollar' or message.text == '$':
+            ind = self.chillSessionsHandler.chill_session_index(message.from_user.id, communication.opened_session.name)
+            self.chillSessionsHandler.useridToChillSessions[message.from_user.id][ind].set_currency('dollar')
+            bot.send_message(message.from_user.id, 'The currency is $ now!')
+        elif message.text == 'euro' or message.text == '€':
+            ind = self.chillSessionsHandler.chill_session_index(message.from_user.id, communication.opened_session.name)
+            self.chillSessionsHandler.useridToChillSessions[message.from_user.id][ind].set_currency('euro')
+            bot.send_message(message.from_user.id, 'The currency is € now!')
+        else:
+            bot.send_message(message.from_user.id, 'Wrong format! Try Again!')
+
 
 communication = Communication()
 
 
-@bot.message_handler(content_types=['text'])  # получает
+@bot.message_handler(content_types=['text'])
 def get_text_messages(message):
     if message.text == '/help':
         if communication.in_session:
             bot.send_message(message.from_user.id, 'You are in session! List of available commands:\n'
                                                    '/exit_session\n'
                                                    '/add_expenses\n'
+                                                   '/show_expenses\n'
+                                                   '/change_currency\n'
                              )
         else:
             bot.send_message(message.from_user.id, 'List of available commands:\n'
@@ -257,6 +287,27 @@ def get_text_messages(message):
         else:
             bot.send_message(message.from_user.id, 'to personal account? (y/n)')
             bot.register_next_step_handler(message, communication.add_expenses_0)
+    elif message.text == '/show_expenses':
+        if not communication.in_session:
+            bot.send_message(message.from_user.id, 'You are not inside a session')
+        else:
+            list_of_expenses = ''
+            if communication.opened_session.sharedAccount == 0 and len(communication.opened_session.memberList) == 0:
+                list_of_expenses += 'You did not have expenses yet!'
+            elif communication.opened_session.sharedAccount != 0:
+                list_of_expenses += 'List of expenses:\nShared account: '
+                list_of_expenses += str(communication.opened_session.sharedAccount)
+                list_of_expenses += communication.opened_session.currency + '\n'
+            for i in range(len(communication.opened_session.memberList)):
+                list_of_expenses += communication.opened_session.memberList[i].name
+                list_of_expenses += ': '
+                list_of_expenses += str(communication.opened_session.memberList[i].account) + communication.\
+                    opened_session.currency
+                list_of_expenses += '\n'
+            bot.send_message(message.from_user.id, list_of_expenses)
+    elif message.text == '/change_currency':
+        bot.send_message(message.from_user.id, 'currency: (ruble/dollar/euro)')
+        bot.register_next_step_handler(message, communication.set_currency)
     else:
         bot.send_message(message.from_user.id, 'try \'/help\'')
 
