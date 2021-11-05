@@ -265,6 +265,9 @@ def get_text_messages(message):
                                                    '/delete_session\n'
                                                    '/open_session\n'
                              )
+    elif message.text == '/start':
+        bot.send_message(message.from_user.id, 'Hello! Here you can manage your expenses if you spend your money with '
+                                               'your friends! Try /help for more details')
     elif message.text == '/new_session':
         if communication.chillSessionsHandler.in_session:
             bot.send_message(message.from_user.id, 'You cannot use this command inside the session')
