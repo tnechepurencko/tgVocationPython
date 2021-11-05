@@ -179,6 +179,7 @@ def get_text_messages(message):
                                                '/list_of_sessions\n'
                                                '/delete_session\n'
                                                '/open_session\n'
+                                               '/exit_session\n'
                                                # '/add_expenses\n'
                          )
     elif message.text == '/new_session':
@@ -203,6 +204,8 @@ def get_text_messages(message):
     elif message.text == '/open_session':
         bot.send_message(message.from_user.id, 'name:')
         bot.register_next_step_handler(message, communication.open_session)
+    elif message.text == '/exit_session':
+        communication.exit_session(message)
     # elif message.text == '/add_expenses':
     #     bot.send_message(message.from_user.id, 'name:')
     #     bot.register_next_step_handler(message, communication.add_expenses_1)
